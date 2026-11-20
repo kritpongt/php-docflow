@@ -1,0 +1,12 @@
+{% extends 'layouts/backoffice.html.twig' %}
+
+{% block title %}{{ document.document_no }} - Backoffice{% endblock %}
+{% block nav_active %}quotation{% endblock %}
+
+{% block main %}
+	{% include "partials/backoffice/quotation/show.html.twig" %}
+{% endblock %}
+
+{% import "pages/backoffice/quotation/_resources.html.twig" as resources %}
+{% block styles %} {{ resources.styles() }} {% endblock %}
+{% block scripts %} {{ resources.scripts() }} {% endblock %}

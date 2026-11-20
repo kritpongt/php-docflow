@@ -1,0 +1,184 @@
+{% import "components/icon_macro.html.twig" as icon %}
+
+{% block main %}
+	<div class="space-y-6">
+		<!-- Page Title & Actions -->
+		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+			<div>
+				<h1 class="text-xl font-semibold text-fg">{{ t('backoffice.quotation.title') }}</h1>
+				<p class="text-sm text-fg-secondary">Manage and view all your quotations.</p>
+			</div>
+			<a href="{{ url('/backoffice/quotation/create') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-accent text-accent-fg hover:opacity-90 transition-opacity"
+				hx-get="{{ url('/backoffice/quotation/create') }}"
+				hx-target="#main-content"
+				hx-swap="innerHTML"
+				hx-push-url="true">
+				{{ icon.use('plus') }}
+				Create Quotation
+			</a>
+		</div>
+
+		<!-- Search Bar & Filter -->
+		{# has_active_filters: (status or date_from or date_to or customer_id), #}
+		{% include "components/search_filter.html.twig" with {
+        action_url: url('/backoffice/quotation'),
+        search: filters.search,
+				filters: [
+					{
+						name: 'status',
+						placeholder: 'All Status',
+						selected: '',
+						options: [
+							{ value: 'draft', label: 'Draft' },
+							{ value: 'issued', label: 'Issued' },
+							{ value: 'approved', label: 'Approved' },
+							{ value: 'cancelled', label: 'Cancelled' },
+						]
+					}
+				],
+        has_active_filters: (filters.status),
+				adv_filters: [
+					{
+						type: 'text',
+						name: 'title',
+						label: t('backoffice.quotation.title'),
+						placeholder: t('backoffice.quotation.title'),
+					},
+					{
+						type: 'text',
+						name: 'document_no',
+						label: t('backoffice.quotation.document_no'),
+						placeholder: t('backoffice.quotation.document_no'),
+					},
+					{
+						type: 'date',
+						name: 'date_from',
+						label: 'ตั้งแต่วันที่',
+						placeholder: t('backoffice.common.date_select'),
+					},
+					{
+						type: 'date',
+						name: 'date_to',
+						label: 'ถึงวันที่',
+						placeholder: t('backoffice.common.date_select'),
+					},
+					{
+						type: 'number',
+						name: 'total',
+						label: 'จำนวนเงิน',
+						placeholder: t('backoffice.common.amount_input'),
+					},
+				]
+    } %}
+
+		<!-- Data Table -->
+		{% embed "components/data_table.html.twig" with { items: documents } %}
+			{% import "components/icon_macro.html.twig" as icon %}
+
+			{% block headers %}
+				<th class="px-4 py-3">Doc No.</th>
+				<th class="px-4 py-3">Date</th>
+				<th class="px-4 py-3">Status</th>
+				<th class="px-4 py-3 text-right">Total</th>
+				<th class="px-4 py-3 text-right">Actions</th>
+			{% endblock %}
+
+			{% block rows %}
+				{% for doc in items %}
+					<tr class="hover:bg-surface-1/50 transition-colors">
+						{# <td class="px-4 py-3 font-medium text-fg">
+							{{ doc.document_no }}
+						</td> #}
+						<td class="px-4 py-3">
+							<div class="flex items-center gap-3">
+								<div class="min-w-0">
+									<div class="font-medium text-fg leading-tight truncate">{{ doc.title }}</div>
+									<div class="text-xs text-fg-muted truncate">{{ doc.document_no }}</div>
+								</div>
+							</div>
+						</td>
+						<td class="px-4 py-3 text-sm text-fg-muted">
+							{{ doc.issue_date }}
+						</td>
+						<td class="px-4 py-3">
+							{% if doc.status == 'issued' %}
+								<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+									<span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>{{ doc.status|capitalize }}
+								</span>
+							{% elseif doc.status == 'approved' %}
+								<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+									<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>{{ doc.status|capitalize }}
+								</span>
+							{% elseif doc.status == 'cancelled' %}
+								<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400">
+									<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>{{ doc.status|capitalize }}
+								</span>
+							{% else %}
+								<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-1 text-fg-muted border border-line">
+									<span class="w-1.5 h-1.5 rounded-full bg-fg-muted"></span>{{ doc.status|capitalize }}
+								</span>
+							{% endif %}
+						</td>
+						<td class="px-4 py-3 text-right font-medium text-fg-secondary">
+							{{ doc.grand_total|number_format(2) }}
+						</td>
+						<td class="px-4 py-3 text-right">
+							<div class="flex items-center justify-end gap-2">
+								{% if doc.status not in ['approved', 'cancelled'] %}
+									<a href="{{ url('/backoffice/quotation/' ~ doc.id ~ '/edit') }}" 
+										class="p-1.5 text-fg-secondary hover:text-fg hover:bg-surface-1 rounded-lg transition-colors" title="Edit"
+										hx-get="{{ url('/backoffice/quotation/' ~ doc.id ~ '/edit') }}"
+										hx-target="#main-content"
+										hx-push-url="true">
+										{{ icon.use('edit') }}
+									</a>
+								{% endif %}
+								{% if doc.status not in ['cancelled'] %}
+									<select name="status" class="rounded-md border px-2 py-1 text-xs"
+										hx-post="{{ url('/backoffice/quotation/' ~ doc.id ~ '/status') }}">
+										<option value="" disabled selected>Change Status</option>
+										{% for s in statuses %}
+											<option value="{{ s }}"
+												{% if s == 'approved' %}
+													data-dialog-confirm="{{ t('backoffice.quotation.change_to_approved') }}"
+												{% elseif s == 'cancelled' %}
+													data-dialog-confirm="{{ t('backoffice.quotation.change_to_canncelled') }}"
+													data-dialog-theme="danger"
+												{% endif %}
+												{% if s === doc.status %}disabled{% endif %}>{{ s|capitalize }}
+											</option>
+										{% endfor %}
+									</select>
+								{% endif %}
+								{% if doc.status in ['cancelled'] %}
+									<form method="post" action="{{ url('/backoffice/quotation/' ~ doc.id ~ '/revise') }}" class="m-0 inline"
+										hx-post="{{ url('/backoffice/quotation/' ~ doc.id ~ '/revise') }}"
+										hx-target="#main-content"
+										data-dialog-confirm="{{ t('backoffice.quotation.revise') }}">
+										<input type="hidden" name="_csrf" value="{{ csrf_token }}">
+										<button type="submit" class="p-1.5 hover:bg-surface-1 rounded-lg transition-colors cursor-pointer" title="Revise">
+											{{ icon.use('revise') }}
+										</button>
+									</form>
+								{% endif %}
+								<a href="{{ url('/backoffice/quotation/' ~ doc.id) }}" 
+									class="p-1.5 text-fg-secondary hover:text-fg hover:bg-surface-1 rounded-lg transition-colors" title="View"
+									hx-get="{{ url('/backoffice/quotation/' ~ doc.id) }}"
+									hx-target="#main-content"
+									hx-push-url="true">
+									{{ icon.use('eye') }}
+								</a>
+							</div>
+						</td>
+					</tr>
+				{% else %}
+					<tr>
+						<td colspan="5" class="px-4 py-8 text-center text-xs text-fg-muted">
+							No quotations found.
+						</td>
+					</tr>
+				{% endfor %}
+			{% endblock %}
+		{% endembed %}
+	</div>
+{% endblock %}

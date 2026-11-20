@@ -1,0 +1,112 @@
+{# templates/components/nav-macro.html.twig #}
+
+{% macro render_tree(items, active, depth = 0) %}
+	{% import "components/icon_macro.html.twig" as icon %}
+
+	{% for item in items %}
+		{% set has_children = item.children is defined and item.children|length > 0 %}
+		{% set is_active = item.key == active %}
+		{% set child_active = false %}
+		{% if has_children %}
+			{% for child in item.children %}
+				{% if child.key == active or (child.children is defined and active in child.children|map(c => c.key)) %}
+					{% set child_active = true %}
+				{% endif %}
+			{% endfor %}
+		{% endif %}
+		{# {% set is_open = is_active or child_active %} #}
+		{% set is_open = true %}
+
+		{% if depth == 0 %}
+			{# Top level navigation item #}
+			{% if has_children %}
+				<div class="tree-node" data-tree-node>
+					<div class="flex items-center justify-between gap-0.5 rounded-lg {{ is_active ? 'bg-accent-bg text-accent-text font-medium' : (child_active ? 'text-fg font-medium' : 'text-fg-secondary') }}">
+						{% if item.href and item.href != '#' %}
+							<a href="{{ item.href }}" class="flex items-center gap-3 px-3 py-2 text-sm flex-1 min-w-0 rounded-lg hover:bg-surface-1">
+								<span class="shrink-0">{{ icon.use(item.icon|default(item.key), 'w-4 h-4')|raw }}</span>
+								<span class="truncate">{{ item.label }}</span>
+							</a>
+							<button type="button"
+								class="px-3 py-2.5 rounded-md text-fg-secondary hover:text-fg hover:bg-surface-1 transition-colors shrink-0"
+								aria-label="{{ item.label }}"
+								aria-expanded="{{ is_open ? 'true' : 'false' }}"
+								data-tree-toggle>
+								{{ _self.chevron(is_open) }}
+							</button>
+						{% else %}
+							<button type="button"
+								class="flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg hover:bg-surface-1"
+								data-tree-toggle
+								aria-label="{{ item.label }}"
+								aria-expanded="{{ is_open ? 'true' : 'false' }}">
+								<div class="flex items-center gap-3 min-w-0">
+									<span class="shrink-0">{{ icon.use(item.icon|default(item.key), 'w-4 h-4')|raw }}</span>
+									<span class="truncate">{{ item.label }}</span>
+								</div>
+								{{ _self.chevron(is_open) }}
+							</button>
+						{% endif %}
+					</div>
+					<ul class="tree-nav {{ is_open ? '' : 'hidden' }}" data-tree-submenu>
+						{{ _self.render_tree(item.children, active, depth + 1) }}
+					</ul>
+				</div>
+			{% else %}
+				<a href="{{ item.href }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm {{ is_active ? 'bg-accent-bg text-accent-text font-medium' : 'text-fg-secondary hover:bg-surface-1' }}">
+					<span class="shrink-0">{{ icon.use(item.icon|default(item.key), 'w-4 h-4')|raw }}</span>
+					<span class="truncate">{{ item.label }}</span>
+				</a>
+			{% endif %}
+		{% else %}
+			{# Tree branch item (depth > 0) #}
+			<li class="tree-nav-item py-0.25">
+				{% if has_children %}
+					<div data-tree-node>
+						<div class="flex items-center justify-between gap-0.5 rounded-lg {{ is_active ? 'bg-accent-bg text-accent-text font-medium' : (child_active ? 'text-fg font-medium' : 'text-fg-secondary') }}">
+							{% if item.href and item.href != '#' %}
+								<a href="{{ item.href }}" class="flex items-center gap-2 px-3 py-1.75 text-sm flex-1 min-w-0 rounded-lg hover:bg-surface-1">
+									<span class="truncate">{{ item.label }}</span>
+								</a>
+								<button type="button"
+									class="px-3 py-2.5 rounded-md text-fg-secondary hover:text-fg hover:bg-surface-1 transition-colors shrink-0"
+									aria-label="{{ item.label }}"
+									aria-expanded="{{ is_open ? 'true' : 'false' }}"
+									data-tree-toggle>
+									{{ _self.chevron(is_open) }}
+								</button>
+							{% else %}
+								<button type="button"
+									class="flex items-center justify-between w-full px-3 py-1.75 text-sm text-left rounded-lg hover:bg-surface-1"
+									aria-label="{{ item.label }}"
+									aria-expanded="{{ is_open ? 'true' : 'false' }}"
+									data-tree-toggle>
+									<span class="truncate">{{ item.label }}</span>
+									{{ _self.chevron(is_open) }}
+								</button>
+							{% endif %}
+						</div>
+						<ul class="tree-nav {{ is_open ? '' : 'hidden' }}" data-tree-submenu>
+							{{ _self.render_tree(item.children, active, depth + 1) }}
+						</ul>
+					</div>
+				{% else %}
+					<a href="{{ item.href }}" class="text-sm flex items-center px-3 py-1.75 rounded-lg transition-colors {{ is_active ? 'bg-accent-bg text-accent-text font-medium' : 'text-fg-secondary hover:bg-surface-1 hover:text-fg' }}">
+						<span class="truncate">{{ item.label }}</span>
+					</a>
+				{% endif %}
+			</li>
+		{% endif %}
+	{% endfor %}
+{% endmacro %}
+
+{% macro chevron(is_open) %}
+	<svg class="w-3.5 h-3.5 transition-transform duration-200 shrink-0 {{ is_open ? 'rotate-90' : '' }}"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		data-tree-chevron>
+		<path d="M9 18l6-6-6-6"/>
+	</svg>
+{% endmacro %}

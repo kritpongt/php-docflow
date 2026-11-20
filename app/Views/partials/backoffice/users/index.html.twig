@@ -1,0 +1,138 @@
+{% import "components/icon_macro.html.twig" as icon %}
+
+{% block main %}
+	{% set noti_type = success ? 'success' : (error ? 'error' : null) %}
+	{% set noti_message = success ?: error %}
+
+	{% if noti_type %}
+		{% include 'components/noti.html.twig' with {
+				message: noti_message,
+				type: noti_type,
+		} %}
+	{% endif %}
+
+	<div class="space-y-6">
+		<!-- Page Title & Actions -->
+		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+			<div>
+				<h1 class="text-xl font-semibold text-fg">{{ t('backoffice.users.title') }}</h1>
+				<p class="text-sm text-fg-secondary">{{ t('backoffice.users.subtitle') }}</p>
+			</div>
+			<a href="{{ url('/backoffice/users/create') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-accent text-accent-fg hover:opacity-90 transition-opacity"
+				hx-get="{{ url('/backoffice/users/create') }}"
+				hx-target="#main-content"
+				hx-swap="innerHTML"
+				hx-push-url="true">
+				{{ icon.use('plus') }}
+				{{ t('backoffice.users.add_new') }}
+			</a>
+		</div>
+
+		{# Filter & Search Bar #}
+		{% include "components/search_filter.html.twig" with {
+			action_url: url('/backoffice/users'),
+			search: search,
+			filters: [
+				{
+					name: 'role',
+					placeholder: t('backoffice.users.all_roles'),
+					selected: role,
+					options: [
+						{ value: 'admin', label: 'Admin' },
+						{ value: 'user', label: 'User' },
+					]
+				},
+				{
+					name: 'is_active',
+					placeholder: t('backoffice.users.is_active'),
+					selected: isActive,
+					options: [
+						{ value: 'active', label: 'Active' },
+						{ value: 'inactive', label: 'Inactive' },
+					]
+				},
+			]
+		} %}
+
+		{# Data Table #}
+		{% embed "components/data_table.html.twig" with { items: users } %}
+			{% import "components/icon_macro.html.twig" as icon %}
+
+			{% block headers %}
+				<th class="px-4 py-3">{{ t('backoffice.users.col_user') }}</th>
+				<th class="px-4 py-3">{{ t('backoffice.users.col_role') }}</th>
+				<th class="px-4 py-3">{{ t('backoffice.users.col_status') }}</th>
+				<th class="px-4 py-3">{{ t('backoffice.users.col_created') }}</th>
+				<th class="px-4 py-3 text-right">{{ t('backoffice.users.col_actions') }}</th>
+			{% endblock %}
+
+			{% block rows %}
+				{% for item in items %}
+					<tr class="hover:bg-surface-1/50 transition-colors">
+						<td class="px-4 py-3">
+							<div class="flex items-center gap-3">
+								<span class="w-8 h-8 rounded-full bg-accent-bg text-accent-text grid place-items-center text-xs font-medium shrink-0">
+									{{ item.name|slice(0, 2)|upper }}
+								</span>
+								<div class="min-w-0">
+									<div class="font-medium text-fg leading-tight truncate">{{ item.name }}</div>
+									<div class="text-xs text-fg-muted truncate">{{ item.email }}</div>
+								</div>
+							</div>
+						</td>
+						<td class="px-4 py-3">
+							{% if item.roles is not empty %}
+								<span class="px-2 py-0.5 text-xs rounded-md bg-surface-1 border border-line text-fg-secondary font-medium">
+									{{ item.roles|join(', ') }}
+								</span>
+							{% else %}
+								<span class="text-xs text-fg-secondary">-</span>
+							{% endif %}
+						</td>
+						<td class="px-4 py-3">
+							{% if item.is_active %}
+								<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+									<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Active
+								</span>
+							{% else %}
+								<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-1 text-fg-muted border border-line">
+									<span class="w-1.5 h-1.5 rounded-full bg-fg-muted"></span>Inactive
+								</span>
+							{% endif %}
+						</td>
+						<td class="px-4 py-3 text-xs text-fg-muted">
+							{{ item.created_at|date('Y-m-d') }}
+						</td>
+						<td class="px-4 py-3 text-right">
+							<div class="flex items-center justify-end gap-1">
+								<a href="{{ url('/backoffice/users/' ~ item.id ~ '/edit') }}" 
+									class="p-1.5 text-fg-secondary hover:text-fg hover:bg-surface-1 rounded-lg transition-colors" title="Edit"
+									hx-get="{{ url('/backoffice/users/' ~ item.id ~ '/edit') }}"
+									hx-target="#main-content"
+									hx-push-url="true">
+									{{ icon.use('edit') }}
+								</a>
+								<form method="post" action="{{ url('/backoffice/users/' ~ item.id ~ '/delete') }}" class="m-0 inline"
+									hx-post="{{ url('/backoffice/users/' ~ item.id ~ '/delete') }}"
+									hx-target="#main-content"
+									data-dialog-confirm="{{ t('backoffice.users.confirm_delete') }}"
+									data-dialog-theme="danger">
+									<input type="hidden" name="_csrf" value="{{ csrf_token }}">
+									<button type="submit" class="p-1.5 text-danger-text hover:bg-surface-1 rounded-lg transition-colors" title="Delete">
+										{{ icon.use('delete') }}
+									</button>
+								</form>
+							</div>
+						</td>
+					</tr>
+					{% else %}
+					<tr>
+						<td colspan="5" class="px-4 py-8 text-center text-xs text-fg-muted">
+							{{ t('backoffice.users.empty') }}
+						</td>
+					</tr>
+				{% endfor %}
+			{% endblock %}
+		{% endembed %}
+	</div>
+{% endblock %}

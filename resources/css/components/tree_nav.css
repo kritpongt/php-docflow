@@ -1,0 +1,41 @@
+/* Sidebar Tree Navigation */
+.tree-nav {
+  position: relative;
+  margin-left: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.tree-nav-item {
+  position: relative;
+  padding-left: 0.5rem;
+  /* padding: 0.125rem 0.5rem; */
+}
+
+/* Vertical guide line */
+.tree-nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--line-strong);
+}
+
+/* Horizontal branch */
+.tree-nav-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1.125rem;
+  /* width: 0.625rem; */
+  width: 0.5625rem;
+  height: 1px;
+  background-color: var(--line-strong);
+}
+
+/* Terminate vertical line at last child */
+.tree-nav-item:last-child::before {
+  height: 1.125rem;
+  bottom: auto;
+}

@@ -1,0 +1,161 @@
+{% import "components/icon_macro.html.twig" as icon %}
+
+<div class="p-3 bg-surface-2 border border-line rounded-xl">
+	<form id="search-filter-form" class="w-full"
+		method="get" 
+		action="{{ action_url }}"
+		hx-get="{{ action_url }}"
+		hx-target="#data-table-container"
+		hx-select="#data-table-container"
+		hx-swap="outerHTML"
+		hx-trigger="submit, change from:select">
+		
+		<div class="flex flex-col sm:flex-row gap-3 justify-between items-center w-full">
+			{# Search input #}
+			<div class="relative w-full sm:w-80">
+				<input type="text" 
+					name="q" 
+					value="{{ search|default('') }}" 
+					placeholder="{{ placeholder|default(t('backoffice.search')) }}" 
+					class="w-full pl-9 pr-3 py-1.5 text-sm bg-surface-0 border border-line rounded-lg text-fg placeholder:text-fg-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all">
+				{{ icon.use('search', 'w-4 h-4 absolute left-3 top-2.5 text-fg-secondary pointer-events-none') }}
+			</div>
+			{# Filters #}
+			{# {% if filters is defined and filters is not empty %}
+				<div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+					{% for filter in filters %}
+						<select name="{{ filter.name }}" 
+							class="w-full sm:w-auto px-3 py-1.5 text-sm bg-surface-0 border border-line rounded-lg text-fg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer">
+							<option value="">{{ filter.placeholder }}</option>
+							{% for option in filter.options %}
+								<option value="{{ option.value }}" {% if filter.selected is defined and filter.selected == option.value %}selected{% endif %}>
+									{{ option.label }}
+								</option>
+							{% endfor %}
+						</select>
+					{% endfor %}
+				</div>
+			{% endif %} #}
+			<div class="flex flex-wrap items-center gap-2 w-full sm:flex-nowrap sm:w-auto sm:justify-end justify-start">
+				{% if filters is defined and filters is not empty %}
+					{% for filter in filters %}
+						{{ _self.render_field(filter) }}
+					{% endfor %}
+				{% endif %}
+
+				{# Button #}
+				{% if adv_filters is defined and adv_filters is not empty %}
+					<button type="button"
+						data-search-filter-toggle="#advanced-filters-panel"
+						aria-expanded="{{ has_active_filters ? 'true' : 'false' }}"
+						class="h-[34px] inline-flex items-center gap-2 px-3 py-1.5 bg-surface-0 text-fg border border-line rounded-lg hover:bg-surface-1 transition-colors">
+						{{ _self.chevron() }}
+					</button>
+				{% endif %}
+			</div>
+		</div>
+
+		{# Advanced filters #}
+		{% if adv_filters is defined and adv_filters is not empty %}
+			<div id="advanced-filters-panel" class="{% if not has_active_filters %}hidden{% endif %} mt-3 pt-3 border-t border-line space-y-3">
+				{# {% block advanced_filters %}{% endblock %} #}
+ 				<div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+					{% if adv_filters is defined and adv_filters is not empty %}
+						{% for adv_filter in adv_filters %}
+							<div>
+								<label class="block text-xs font-medium text-fg-secondary mb-1 truncate">{{ adv_filter.label != '' ? adv_filter.label : '&nbsp;' }}</label>
+								{{ _self.render_field(adv_filter) }}
+							</div>
+						{% endfor %}
+					{% endif %}
+				</div>
+
+				<div class="flex justify-end gap-3">
+					<a href="{{ action_url }}"
+						hx-get="{{ action_url }}"
+						hx-select="#data-table-container"
+						hx-target="#data-table-container"
+						hx-swap="outerHTML"
+						class="px-3 py-1.5 text-sm font-medium text-fg-secondary hover:text-fg hover:bg-surface-1 rounded-lg border border-line transition-colors"
+						data-search-filter-reset>
+						{{ t('common.reset') }}
+					</a>
+					<button type="submit"
+						class="px-3 py-1.5 text-sm font-medium text-accent-fg bg-accent hover:opacity-90 rounded-lg transition-opacity cursor-pointer">
+						{{ t('common.search') }}
+					</button>
+				</div>
+			</div>
+		{% endif %}
+	</form>
+</div>
+
+{% macro render_field(filter) %}
+	{% set type = filter.type|default('select') %}
+
+	{% if type == 'select' %}
+		<select name="{{ filter.name }}"
+			class="w-full h-[34px] px-3 py-1.5 text-sm bg-surface-0 border border-line rounded-lg text-fg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer">
+			<option value="">{{ filter.placeholder }}</option>
+			{% for option in filter.options %}
+				<option value="{{ option.value }}" 
+					{% if filter.selected is defined and filter.selected == option.value %}selected{% endif %}>
+					{{ option.label }}
+				</option>
+			{% endfor %}
+		</select>
+
+	{% elseif type == 'multiselect' %}
+		{# <div class="relative" data-multiselect>
+			<button type="button" data-multiselect-toggle class="">
+				<span data-multiselect-label>{{ filter.placeholder }}</span>
+				{{ _self.chevron() }}
+			</button>
+			<div data-multiselect-panel class="hidden absolute z-20 mt-1 w-full bg-surface-0 border border-line rounded-lg p-1 shadow-lg max-h-60 overflow-auto">
+				{% for option in filter.options %}
+					<label class="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-surface-1 cursor-pointer">
+						<input type="checkbox" name="{{ filter.name }}[]" value="{{ option.value }}"
+							{% if option.value in (filter.selected|default([])) %}checked{% endif %}>
+						{{ option.label }}
+					</label>
+				{% endfor %}
+			</div>
+		</div> #}
+
+	{% elseif type == 'text' %}
+		<input type="text"
+			name="{{ filter.name }}"
+			value="{{ filter.value|default('') }}"
+			placeholder="{{ filter.placeholder|default('') }}"
+			class="w-full px-3 py-1.5 text-sm bg-surface-0 border border-line rounded-lg text-fg placeholder:text-fg-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all">
+
+	{% elseif type == 'date' %}
+		<input type="text"
+			name="{{ filter.name }}"
+			value="{{ filter.value|default('') }}"
+			placeholder="{{ filter.placeholder|default('') }}"
+			class="js-datepicker w-full px-3 py-1.5 text-sm bg-surface-0 border border-line rounded-lg text-fg placeholder:text-fg-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer">
+
+	{% elseif type == 'number' %}
+		<input type="number"
+			name="{{ filter.name }}"
+			value="{{ filter.value|default('') }}"
+			placeholder="{{ filter.placeholder|default('0') }}"
+			class="w-full px-3 py-1.5 text-sm bg-surface-0 border border-line rounded-lg text-fg placeholder:text-fg-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+			{% if filter.min is defined %}min="{{ filter.min }}"{% endif %}
+			{% if filter.max is defined %}max="{{ filter.max }}"{% endif %}>
+
+	{# {% elseif type == 'decimal' %} #}
+	{% endif %}
+{% endmacro %}
+
+{% macro chevron() %}
+	<svg class="w-3.5 h-3.5 transition-transform duration-200 shrink-0"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		data-search-filter-chevron>
+		<path d="M6 9l6 6 6-6"/>
+	</svg>
+{% endmacro %}

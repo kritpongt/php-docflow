@@ -1,0 +1,149 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block content %}
+	{% import "components/icon_macro.html.twig" as icon %}
+	{% import "components/nav_macro.html.twig" as sidebar %}
+
+	{% set active = block('nav_active')|trim %}
+	{% set nav = [
+		{ key: 'dashboard', label: t('backoffice.nav.dashboard'), href: url('/backoffice') },
+		{
+			key: 'documents',
+			label: t('backoffice.nav.documents'),
+			href: '#',
+			children: [
+				{ key: 'quotation', label: t('backoffice.nav.quotation'), href: url('/backoffice/quotation') },
+				{ key: 'quotation-acceptance', label: t('backoffice.nav.quotation_acceptance'), href: url('/backoffice/quotation-acceptance') },
+				{ key: 'invoice', label: t('backoffice.nav.invoice'), href: url('/backoffice/invoice') },
+				{ key: 'receipt', label: t('backoffice.nav.receipt'), href: url('/backoffice/receipt') },
+				{ key: 'report-settings', label: t('backoffice.nav.document_settings'), href: url('/backoffice/report-settings') },
+			]
+		},
+		{ 
+			key: 'settings', 
+			label: t('backoffice.nav.settings'), 
+			href: '#', 
+			children: [
+				{ key: 'users', label: t('backoffice.nav.users'), href: url('/backoffice/users') },
+				{ key: 'rbac', label: t('backoffice.nav.rbac'), href: url('/backoffice/roles') },
+				{ key: 'audit', label: t('backoffice.nav.audit'), href: url('/backoffice/audit') },
+			] 
+		},
+	] %}
+
+	<div class="h-screen overflow-hidden flex flex-col pb-16 md:pb-0 md:grid md:grid-cols-[clamp(16vw,240px,40vw)_1fr]">
+		<aside class="hidden h-full md:flex bg-surface-2 border-r border-line flex-col">
+			<a href="{{ url('/backoffice') }}" class="flex items-center gap-2 px-4 h-14 border-b border-line">
+				{# system-generated svg icon: safe #}
+				<span class="w-7 h-7 rounded-lg bg-accent text-accent-fg grid place-items-center">{{ icon.use('brand')|raw }}</span>
+				<span class="font-medium text-sm">{{ t('backoffice.brand') }}</span>
+			</a>
+			<nav id="sidemenu-nav" class="p-3 flex flex-1 overflow-y-auto min-h-0 flex-col gap-1">
+				{{ sidebar.render_tree(nav, active, 0) }}
+			</nav>
+
+			<!-- User Profile -->
+			<div class="p-3 border-t border-line relative" id="userMenuContainer">
+				<button type="button" id="userMenuBtn" class="flex items-center justify-between w-full p-2 rounded-lg hover:bg-surface-1 transition-colors">
+					<div class="flex items-center gap-2.5 min-w-0">
+						<span class="w-8 h-8 rounded-full bg-accent-bg text-accent-text grid place-items-center text-xs font-medium shrink-0">
+							{{ user.name|slice(0, 2)|upper }}
+						</span>
+						<span class="text-sm font-medium leading-tight truncate text-left">{{ user.name }}</span>
+					</div>
+					<svg class="w-4 h-4 text-fg-secondary shrink-0" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M9 18l6-6-6-6"/>
+					</svg>
+				</button>
+
+				<!-- Dropdown Flyout Menu -->
+				<div id="userDropdown" class="hidden absolute bottom-2 left-full ml-2 w-48 bg-surface-2 border border-line rounded-xl shadow-lg p-1.5 space-y-1 z-50">
+					<a href="{{ url('/backoffice/profile') }}" class="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-fg-secondary hover:bg-surface-1 hover:text-fg transition-colors">
+						{{ icon.use('profile', 'w-4 h-4') }}
+						{{ t('backoffice.edit_profile') }}
+					</a>
+
+					<div class="border-t border-line my-1"></div>
+
+					<form method="post" action="{{ url('/backoffice/logout') }}" class="m-0">
+						<input type="hidden" name="_csrf" value="{{ csrf_token }}">
+						<button type="submit" class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-danger-text hover:bg-surface-1 transition-colors">
+							{{ icon.use('logout', 'w-4 h-4') }}
+							{{ t('backoffice.logout') }}
+						</button>
+					</form>
+				</div>
+			</div>
+		</aside>
+
+		{# <div class="flex flex-col min-w-0"> #}
+		<div class="flex flex-col h-full overflow-hidden">
+			<header class="h-14 flex shrink-0 items-center justify-between px-5 border-b border-line bg-surface-2">
+				<span class="text-sm text-fg-muted">{{ t('backoffice.search') }}</span>
+				<div class="flex items-center gap-3">
+					{# no-JS: this button is inert, page still follows the OS theme #}
+					<button type="button" data-theme-toggle aria-label="toggle_themes" class="w-8 h-8 grid place-items-center rounded-lg text-fg-secondary hover:bg-surface-1">
+						<span class="icon-when-light">{{ icon.use('sun')|raw }}</span>
+						<span class="icon-when-dark">{{ icon.use('moon')|raw }}</span>
+					</button>
+					<div class="w-px h-4 bg-line shrink-0"></div>
+
+					{# language switcher: same page, other locale #}
+					<div class="flex items-center gap-1">
+						{% for loc in locales %}
+							<a href="{{ to_locale(loc, current_path) }}" class="px-2 py-1 rounded text-xs {{ loc == current_locale ? 'bg-accent-bg text-accent-text font-medium' : 'text-fg-secondary hover:bg-surface-1'}}">
+								{{ loc|upper }}
+							</a>
+						{% endfor %}
+					</div>
+				</div>
+			</header>
+			<main id="main-content" class="flex-1 overflow-y-auto p-6">
+				{% block main %}{% endblock %}
+			</main>
+		</div>
+
+		{# bottom navigation (mobile) #}
+		<nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface-2 border-t border-line flex items-center justify-around z-40 p-2 pb-safe">
+
+			{# hamburger menu #}
+			<button type="button" id="open-mobile-menu" class="flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 text-fg-secondary hover:bg-surface-1 rounded-lg">
+				{{ icon.use('menu') }}
+				<span>Menu</span>
+			</button>
+		</nav>
+
+		{# sidemenu (mobile) #}
+		<div id="mobile-menu-drawer" class="md:hidden fixed inset-x-0 top-0 bottom-16 z-30 hidden flex justify-end">
+			<div id="mobile-menu-backdrop" class="absolute inset-0 bg-black/20"></div>
+			<div class="relative w-64 max-w-[80vw] bg-surface-2 h-full shadow-2xl flex flex-col border-l border-line transform transition-transform">
+				<div class="flex items-center justify-between p-4 border-b border-line">
+					<span class="font-medium text-sm">{{ t('backoffice.menu')|default('Menu') }}</span>
+					<button type="button" id="close-mobile-menu" class="p-2 text-fg-secondary hover:bg-surface-1 rounded-lg">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12"/>
+						</svg>
+					</button>
+				</div>
+
+				<nav class="flex-1 p-3 overflow-y-auto flex flex-col gap-1">
+					{{ sidebar.render_tree(nav, active) }}
+					<div class="border-t border-line my-2"></div>
+
+					<a href="{{ url('/backoffice/profile') }}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-fg-secondary hover:bg-surface-1">
+						{{ icon.use('profile') }}
+						{{ t('backoffice.edit_profile') }}
+					</a>
+					<form method="post" action="{{ url('/backoffice/logout') }}" class="m-0">
+						<input type="hidden" name="_csrf" value="{{ csrf_token }}">
+						<button type="submit" class="w-full flex items-center gap-3 px-3 py-3 text-sm rounded-lg text-danger-text hover:bg-surface-1 transition-colors">
+							{{ icon.use('logout') }}
+							{{ t('backoffice.logout') }}
+						</button>
+					</form>
+				</nav>
+			</div>
+		</div>
+	</div>
+	{% include 'components/dialog_box.html.twig' %}
+{% endblock %}
