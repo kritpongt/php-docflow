@@ -3,20 +3,33 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Core\Config;
 use Spatie\Browsershot\Browsershot;
 
 final class PdfService
 {
+	public function __construct(private readonly Config $config){}
+
 	public function generateFromHtml(string $html, string $filename = 'document.pdf', bool $stream = true, ?string $headerHtml = null, ?string $footerHtml = null): ?string
 	{
-		$pdfContent = Browsershot::html($html)
+		$browsershot = Browsershot::html($html)
 			->format('A4')
 			->margins(40, 10, 15, 10)
 			->showBackground()
 			->showBrowserHeaderAndFooter()
 			->headerHtml($headerHtml ?? '<div></div>')
-			->footerHtml($footerHtml ?? '<div></div>')
-			->pdf();
+			->footerHtml($footerHtml ?? '<div></div>');
+
+		$chrome = (string) $this->config->get('browsershot.chrome_path', '');
+		if($chrome !== ''){
+			$browsershot->setChromePath($chrome)->addChromiumArguments(['no-sandbox', 'disable-dev-shm-usage']);
+		}
+		$nodeModules = (string) $this->config->get('browsershot.node_module_path', '');
+		if($nodeModules !== ''){
+			$browsershot->setNodeModulePath($nodeModules);
+		}
+
+		$pdfContent = $browsershot->pdf();
 
 		if($stream){
 			header('Content-Type: application/pdf');

@@ -11,8 +11,8 @@ final class Response
 	 * @var list<array{name: string, value: string, maxAge: int, secure: bool}>
 	 */
 	private array $cookies = [];
+	private ?string $streamPath = null;
 
-	/** @param array<string, string> $headers */
 	public function __construct(
 		private string $body = '',
 		private int $status = 200,
@@ -27,6 +27,25 @@ final class Response
 	public static function json(array $data, int $status = 200): self
 	{
 		return new self((string) json_encode($data), $status, ['Content-Type' => 'application/json; charset=UTF-8']);
+	}
+
+	public static function stream(string $path, string $mime, int $size, string $disposition = 'inline', ?string $downloadName = null): self
+	{
+		if(!is_file($path)){
+			throw new \RuntimeException('Stream source missing');
+		}
+
+		$response = new self('', 200, [
+			'Content-Type' => $mime,
+			'Content-Length' => (string) $size,
+			'Content-Disposition' => ($disposition === 'attachment'
+				? "attachment; filename*=UTF-8''".rawurlencode($downloadName ?? basename($path))
+				: 'inline'),
+			'Cache-Control' => 'private, no-store',
+		]);
+		$response->streamPath = $path;
+
+		return $response;
 	}
 
 	/**
@@ -120,6 +139,11 @@ final class Response
 				'httponly' => true,
 				'samesite' => 'Lax'
 			]);
+		}
+
+		if($this->streamPath !== null){
+			readfile($this->streamPath);
+			return;
 		}
 
 		echo $this->body;

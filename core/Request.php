@@ -18,6 +18,7 @@ final class Request
 		private readonly string $path,
 		private readonly array $query,
 		private readonly array $body,
+		private readonly array $files,
 		private readonly array $headers,
 		private readonly array $cookies,
 		private readonly string $ip
@@ -48,11 +49,31 @@ final class Request
 		$uri = $_SERVER['REQUEST_URI'] ?? '/';
 		$path = parse_url($uri, PHP_URL_PATH) ?: '/';
 
+		$files = [];
+		foreach($_FILES as $key => $f){
+			if(!is_array($f)){ continue; }
+
+			$error = (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE);
+			$tmp = (string) ($f['tmp_name'] ?? '');
+
+			if($error === UPLOAD_ERR_OK && !is_uploaded_file($tmp)){
+				$error = UPLOAD_ERR_CANT_WRITE;
+			}
+
+			$files[$key] = new UploadedFile(
+				originalName: basename((string) ($f['name'] ?? '')),
+				tmpPath: $tmp,
+				error: $error,
+				size: (int) ($f['size'] ?? 0)
+			);
+		}
+
 		return new self(
 			method: $method,
 			path: $path,
 			query: $_GET,
 			body: $body,
+			files: $files,
 			headers: self::collectHeaders(),
 			cookies: $_COOKIE,
 			ip: $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0' // *REMOTE_ADDR* only - X-Forwarded-For is client-controlled, spoofable
@@ -80,6 +101,21 @@ final class Request
 			path: $path,
 			query: $this->query,
 			body: $this->body,
+			files: $this->files,
+			headers: $this->headers,
+			cookies: $this->cookies,
+			ip: $this->ip
+		);
+	}
+
+	public function withFiles(array $files): self
+	{
+		return new self(
+			method: $this->method,
+			path: $this->path,
+			query: $this->query,
+			body: $this->body,
+			files: $files,
 			headers: $this->headers,
 			cookies: $this->cookies,
 			ip: $this->ip
@@ -96,7 +132,6 @@ final class Request
 		return $this->body[$key] ?? $default;
 	}
 
-	/** @return array<string, mixed> */
 	public function all(): array
 	{
 		return $this->body;
