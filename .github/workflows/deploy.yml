@@ -1,0 +1,17 @@
+name: Deploy
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: [self-hosted, linux, x64, deploy]
+    environment: production
+    concurrency: { group: production-deploy, cancel-in-progress: false }
+    steps:
+      - name: Deploy on debian
+        run: bash /srv/php-docflow/deploy/deploy.sh "${GITHUB_SHA}"

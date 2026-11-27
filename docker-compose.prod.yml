@@ -1,0 +1,70 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    image: php-docflow-web:${APP_IMAGE_TAG:-dev}
+    ports:
+      - "${APP_BIND_IP:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/healthcheck | grep -q '\"status\":\"up\"'"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: php-docflow:${APP_IMAGE_TAG:-dev}
+    env_file:
+      - /etc/php-docflow/app.env
+    volumes:
+      - storage:/var/www/html/storage
+      - /etc/php-docflow/app.env:/var/www/html/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 9000) ? 0 : 1);'"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - /etc/php-docflow/app.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  storage:
