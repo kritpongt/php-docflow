@@ -38,7 +38,7 @@ final class Env
 	public static function get(string $key, ?string $default = null): ?string
 	{
 		$value = $_ENV[$key] ?? getenv($key);
-		return ($value === false || $value === null) ? $default : (string) $value;
+		return ($value === false || $value === null || $value === '') ? $default : (string) $value;
 	}
 
 	private static function stripQuotes(string $value): string

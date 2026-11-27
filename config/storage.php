@@ -5,10 +5,17 @@ use Core\Env;
 
 $root = dirname(__DIR__).'/storage';
 
-// ## paths default to storage/ but .env can override (Docker, atomic deploys).
 return [
-	'twig_cache' => Env::get('TWIG_CACHE_PATH', $root.'/cache/twig'),
-	'logs' => Env::get('LOG_PATH', $root.'/logs'),
+	'twig_cache' => $root.'/cache/twig',
+	'logs' => $root.'/logs',
 	'log_retention_days' => (int) Env::get('LOG_RETENTION_DAYS', '14'),
-	'log_min_level' => Env::get('LOG_MIN_LEVEL', 'ERROR')
+	'log_min_level' => Env::get('LOG_MIN_LEVEL', 'ERROR'),
+
+	'uploads' => $root.'/uploads',
+	'uploads_tmp' => $root.'/uploads/tmp',
+	'upload' => [
+		'max_width' => 4096,
+		'max_height' => 4096,
+		'max_pixels' => 20000000,
+	]
 ];
