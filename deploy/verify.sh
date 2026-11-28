@@ -2,13 +2,34 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-export APP_IMAGE_TAG="${APP_IMAGE_TAG:-verify}"
-export APP_BIND_IP="${APP_BIND_IP:-127.0.0.1}"
-export APP_PORT="${APP_PORT:-18080}"
+PROJECT=php-docflow-verify
+export APP_ENV_FILE="./app.env"
+export APP_IMAGE_TAG="verify"
+export APP_BIND_IP="127.0.0.1"
+export APP_PORT="18080"
 
-docker compose -f docker-compose.yml config --quiet
-docker compose -f docker-compose.prod.yml config --quiet
-docker compose -f docker-compose.prod.yml build nginx app
-docker compose -f docker-compose.prod.yml up -d --wait --wait-timeout 120
+if [[ ! -r "$APP_ENV_FILE" ]]; then
+	echo "missing: $APP_ENV_FILE" >&2
+	exit 1
+fi
+
+compose(){
+	docker compose -p "$PROJECT" -f docker-compose.prod.yml "$@"
+}
+
+cleanup(){
+	local rc=$?
+	if (( rc != 0 )); then
+		echo "--- preflight failed (rc=$rc) ---" >&2
+		compose logs --no-color --tail=100 || true
+	fi
+	compose down -v --remove-orphans || true
+	exit "$rc"
+}
+trap cleanup EXIT
+
+compose config --quiet
+compose config --volumes
+compose build nginx app
+compose up -d --wait --wait-timeout 90
 curl -fsS "http://$APP_BIND_IP:$APP_PORT/api/healthcheck"
-docker compose -f docker-compose.prod.yml down -v

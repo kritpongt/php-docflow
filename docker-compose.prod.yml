@@ -11,15 +11,19 @@ services:
       app:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/healthcheck | grep -q '\"status\":\"up\"'"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/api/healthcheck"]
       interval: 10s
       timeout: 3s
-      retries: 12
+      retries: 9
       start_period: 20s
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     restart: unless-stopped
 
   app:
@@ -29,10 +33,10 @@ services:
       target: runtime
     image: php-docflow:${APP_IMAGE_TAG:-dev}
     env_file:
-      - /etc/php-docflow/app.env
+      - ${APP_ENV_FILE:-/etc/php-docflow/app.env}
     volumes:
       - storage:/var/www/html/storage
-      - /etc/php-docflow/app.env:/var/www/html/.env:ro
+      - ${APP_ENV_FILE:-/etc/php-docflow/app.env}:/var/www/html/.env:ro
     depends_on:
       db:
         condition: service_healthy
@@ -40,7 +44,7 @@ services:
       test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 9000) ? 0 : 1);'"]
       interval: 10s
       timeout: 3s
-      retries: 12
+      retries: 9
       start_period: 10s
     security_opt:
       - no-new-privileges:true
@@ -51,7 +55,11 @@ services:
   db:
     image: postgres:16-alpine
     env_file:
-      - /etc/php-docflow/app.env
+      - ${APP_ENV_FILE:-/etc/php-docflow/app.env}
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -63,6 +71,12 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     restart: unless-stopped
 
 volumes:
