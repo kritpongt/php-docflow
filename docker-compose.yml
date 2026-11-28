@@ -1,7 +1,7 @@
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
-    container_name: php-docflow-db-dev
+    container_name: php-docflow-dev-pgsql
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
